@@ -22,7 +22,7 @@ if (-not (Test-Path "$PSScriptRoot\\daemon")) {
 # 4. Install daemon deps & start
 Push-Location "$PSScriptRoot\daemon"
   npm install --silent
-  node index.js
+  node index.js          # ← no ampersand here
 Pop-Location
 
 Write-Host "✔ Daemon running on http://localhost:31337" -ForegroundColor Green

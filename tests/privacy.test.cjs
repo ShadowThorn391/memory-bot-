@@ -17,8 +17,10 @@ test('userscript asks for no elevated network privileges', () => {
   assert.doesNotMatch(metadata, /@connect\b|GM_xmlhttpRequest|GM\.xmlHttpRequest/);
 });
 test('userscript contains no legacy automatic collection or network calls', () => {
-  assert.doesNotMatch(script, /sessionStorage|localStorage|MutationObserver|XMLHttpRequest|sendBeacon|\bfetch\s*\(|WebSocket|\bimport\s*\(/);
-  assert.doesNotMatch(script, /https?:\/\/localhost|127\.0\.0\.1|\/extract\b|chat_messages/);
+  // Ignore explanatory comments: block executable collection/export APIs.
+  const executable = script.split('\n').filter(line => !line.trimStart().startsWith('//')).join('\n');
+  assert.doesNotMatch(executable, /sessionStorage|localStorage|MutationObserver|XMLHttpRequest|sendBeacon|\bfetch\s*\(|WebSocket|\bimport\s*\(/);
+  assert.doesNotMatch(executable, /https?:\/\/localhost|127\.0\.0\.1|\/extract\b|chat_messages/);
 });
 test('project and non-project paths remain silent and offline', () => {
   for (const pathname of ['/projects/example-123', '/c/a-chat', '/projects/', '/']) {

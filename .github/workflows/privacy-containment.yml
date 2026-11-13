@@ -1,0 +1,66 @@
+name: MemoryBot privacy containment checks
+
+on:
+  pull_request:
+    paths:
+      - 'install.ps1'
+      - 'userscript/**'
+      - 'tests/**'
+      - '.github/workflows/privacy-containment.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'install.ps1'
+      - 'userscript/**'
+      - 'tests/**'
+      - '.github/workflows/privacy-containment.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: memorybot-privacy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-userscript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Execute privacy regression tests (offline)
+        run: node --test tests/privacy.test.cjs
+
+  installer-deny-by-default:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Execute installer without permitting setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $blocked = $false
+          try {
+            & ./install.ps1
+          }
+          catch {
+            if ($_.Exception.Message -match 'MEMORYBOT_INSTALL_BLOCKED') {
+              $blocked = $true
+            }
+            else {
+              throw
+            }
+          }
+          if (-not $blocked) {
+            throw 'Security regression: installer did not fail closed.'
+          }
+          Write-Host 'Installer denied unreviewed setup as required.'
